@@ -1,19 +1,30 @@
 package com.example.data.source.file
 
-import android.content.Context
+import android.content.ContentResolver
 import android.database.ContentObserver
 import android.media.MediaMetadataRetriever
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import androidx.annotation.StringDef
 import com.example.data.model.Music
+import com.example.data.source.file.MusicFileDataSource.MusicSortOrder.Companion.SORT_BY_DATE
+import com.example.data.source.file.MusicFileDataSource.MusicSortOrder.Companion.SORT_BY_TITLE
 
-class MusicFileDataSource(private val context: Context) {
+class MusicFileDataSource(private val contentResolver: ContentResolver) {
 
-    fun fetchAllMusicItems(sortOrder: String?): List<Music> {
+    @StringDef(SORT_BY_TITLE, SORT_BY_DATE)
+    annotation class MusicSortOrder {
+        companion object {
+            const val SORT_BY_TITLE = "${MediaStore.Audio.Media.TITLE} ASC"
+            const val SORT_BY_DATE = "${MediaStore.Audio.Media.DATE_ADDED} DESC"
+        }
+    }
+
+    fun fetchAllMusicItems(sortOrder: String? = null): List<Music> {
         val musicList = mutableListOf<Music>()
 
-        val musicQuery = context.contentResolver.query(
+        val musicQuery = contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             arrayOf(
                 MediaStore.Audio.Media._ID,
@@ -53,13 +64,13 @@ class MusicFileDataSource(private val context: Context) {
 
 
     fun observeAllMusicItems(
-        sortOrder: String?,
+        sortOrder: String? = null,
         onStartObserve: (snapshot: List<Music>) -> Unit,
         onChanged: (newMusicList: List<Music>) -> Unit
     ) {
         onStartObserve(fetchAllMusicItems(sortOrder))
 
-        context.contentResolver.registerContentObserver(
+        contentResolver.registerContentObserver(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             true,
             object: ContentObserver(Handler(Looper.getMainLooper())){
