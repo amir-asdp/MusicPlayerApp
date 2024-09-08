@@ -9,9 +9,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
 
-class MusicRepositoryImpl(
+class MusicRepositoryImpl @Inject constructor(
     private val coroutineContext: CoroutineContext,
     private val musicFileDataSource: MusicFileDataSource
 ): MusicRepository {
@@ -21,10 +22,10 @@ class MusicRepositoryImpl(
             musicFileDataSource.observeAllMusicItems(
                 sortOrder = sortOrder,
                 onStartObserve = {
-                    launch { emit(it) }
+                    emit(it)
                 },
                 onChanged = {
-                    launch { emit(it) }
+                    emit(it)
                 }
             )
         }

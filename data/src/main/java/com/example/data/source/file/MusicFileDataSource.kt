@@ -10,8 +10,11 @@ import androidx.annotation.StringDef
 import com.example.data.model.Music
 import com.example.data.source.file.MusicFileDataSource.MusicSortOrder.Companion.SORT_BY_DATE
 import com.example.data.source.file.MusicFileDataSource.MusicSortOrder.Companion.SORT_BY_TITLE
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MusicFileDataSource(private val contentResolver: ContentResolver) {
+class MusicFileDataSource @Inject constructor(private val contentResolver: ContentResolver) {
 
     @StringDef(SORT_BY_TITLE, SORT_BY_DATE)
     annotation class MusicSortOrder {
@@ -63,23 +66,27 @@ class MusicFileDataSource(private val contentResolver: ContentResolver) {
     }
 
 
-    fun observeAllMusicItems(
+    suspend fun observeAllMusicItems(
         sortOrder: String? = null,
-        onStartObserve: (snapshot: List<Music>) -> Unit,
-        onChanged: (newMusicList: List<Music>) -> Unit
+        onStartObserve: suspend (snapshot: List<Music>) -> Unit,
+        onChanged: suspend (newMusicList: List<Music>) -> Unit
     ) {
         onStartObserve(fetchAllMusicItems(sortOrder))
 
-        contentResolver.registerContentObserver(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            true,
-            object: ContentObserver(Handler(Looper.getMainLooper())){
-                override fun onChange(selfChange: Boolean) {
-                    super.onChange(selfChange)
-                    onChanged(fetchAllMusicItems(sortOrder))
+        coroutineScope {
+            contentResolver.registerContentObserver(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                true,
+                object: ContentObserver(Handler(Looper.getMainLooper())){
+                    override fun onChange(selfChange: Boolean) {
+                        super.onChange(selfChange)
+                        launch {
+                            onChanged(fetchAllMusicItems(sortOrder))
+                        }
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 
 
